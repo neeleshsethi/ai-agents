@@ -1,0 +1,21 @@
+[server]
+headless = true
+fileWatcherType = "none"
+enableStaticServing = true
+enableCORS = false
+enableXsrfProtection = false
+port = 8501
+address = "0.0.0.0"
+maxUploadSize = 200
+
+[browser]
+gatherUsageStats = false
+
+[theme]
+base = "light"
+
+[logger]
+level = "info"
+
+[client]
+showErrorDetails = false 
