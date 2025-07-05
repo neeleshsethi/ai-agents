@@ -11,5 +11,15 @@ dependencies = [
     "pydantic",
     "pydantic-settings",
     "streamlit",
-    "google-genai"
+    "google-genai",
+    "pandas>=2.3.0",
+    "seaborn>=0.13.2",
+    "matplotlib>=3.10.3",
+    "qdrant-client>=1.14.3",
+    "langchain>=0.3.26",
+    "langchain-core>=0.3.68",
+    "langchain-community>=0.3.27",
+    "langgraph>=0.5.1",
+    "langchain-anthropic>=0.3.17",
+    "langchain-openai>=0.3.27",
 ]
