@@ -32,5 +32,8 @@ clean-test-files:
 	@echo "Cleaning up test files..."
 	rm -f src/chatbot-ui/test_env.py
 
+run-docker-compose:
+	docker compose up --build
+
 
 	

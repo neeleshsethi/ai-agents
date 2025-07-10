@@ -6,10 +6,29 @@ from google.genai import types
 
 from groq import Groq
 from core.config import config
+from qdrant_client import QdrantClient
+from retrieval import rag_pipeline
 
 # Set environment variables to prevent permission errors
 os.environ['STREAMLIT_SERVER_HEADLESS'] = 'true'
 os.environ['STREAMLIT_SERVER_FILE_WATCHER_TYPE'] = 'none'
+
+qdrant_client = QdrantClient(
+    url=config.QDRANT_URL, 
+    api_key=config.QDRANT_API_KEY,
+    check_compatibility=False
+)
+
+# Debug: List available collections
+try:
+    collections = qdrant_client.get_collections()
+    print(f"Available collections: {[c.name for c in collections.collections]}")
+    print(f"Configured collection name: {config.QDRANT_COLLECTION_NAME}")
+except Exception as e:
+    print(f"Error listing collections: {e}")
+
+
+
 
 ## Lets create sidebar
 with st.sidebar:
@@ -79,6 +98,11 @@ if api_key_valid:
 else:
     st.error(error_message)
 
+def run_rag_pipeline(prompt, qdrant_client):
+    output = rag_pipeline(prompt, qdrant_client)
+    return output['answer']
+
+
 def run_llm(client, messages, temperature=0.7, max_tokens=500):
     if not client:
         return "Client not initialized. Please check your API key configuration."
@@ -129,13 +153,10 @@ if prompt := st.chat_input("Hello how can i assist you today"):
     with st.chat_message("assistant"):
         response = None
         try:
-            response = run_llm(
-                client, 
-                st.session_state.messages,
-                temperature=st.session_state.temperature,
-                max_tokens=st.session_state.max_tokens
-            )
+        
+            response = run_rag_pipeline(prompt, qdrant_client)
             st.write(response)
+            print(response)
         except Exception as ex:
             error_message = f"Error occurred: {str(ex)}"
             st.error(error_message)

@@ -34,6 +34,9 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 # Copy Streamlit config
 COPY .streamlit ./.streamlit/
 
+# Copy .env file
+COPY .env ./
+
 # Copy application code
 COPY src/chatbot-ui ./src/chatbot-ui/
 

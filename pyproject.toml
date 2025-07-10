@@ -22,4 +22,5 @@ dependencies = [
     "langgraph>=0.5.1",
     "langchain-anthropic>=0.3.17",
     "langchain-openai>=0.3.27",
+    "opik>=1.7.42",
 ]
