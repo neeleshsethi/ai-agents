@@ -17,8 +17,7 @@ class Config(BaseSettings):
     QDRANT_URL: str = "https://c006961b-c63f-469e-b947-33bbfe692e0c.us-east-1-0.aws.cloud.qdrant.io:6333"
     QDRANT_API_KEY: Optional[str] = None
     QDRANT_COLLECTION_NAME: str = "electronics"
-    API_URL: str = "http://api:8000"
-    
+
 
 
 

@@ -1,5 +1,13 @@
+run-fastapi:
+	uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
+
 run-streamlit:
 	streamlit run src/chatbot-ui/streamlit_app.py
+
+run-all:
+	@echo "Starting FastAPI backend and Streamlit frontend..."
+	@echo "Note: You may want to run these in separate terminals instead."
+	@make run-fastapi & make run-streamlit
 
 build-docker-streamlit:
 	docker build -t streamlit-app:latest .

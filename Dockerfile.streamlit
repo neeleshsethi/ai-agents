@@ -2,17 +2,16 @@ FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim
 
 WORKDIR /app
 
-# Enable bytecode compilation and Python optimization
-ENV UV_COMPILE_BYTECODE=1
-ENV PYTHONOPTIMIZE=1
+# Disable bytecode compilation for development (allows hot reload)
+ENV PYTHONDONTWRITEBYTECODE=1
 ENV UV_LINK_MODE=copy
 
 # Set Python path to include the src directory for imports
-ENV PYTHONPATH="/app/src:$PYTHONPATH"
+ENV PYTHONPATH="/app/src"
 
 # Set Streamlit environment variables to prevent permission errors
 ENV STREAMLIT_SERVER_HEADLESS=true
-ENV STREAMLIT_SERVER_FILE_WATCHER_TYPE=none
+ENV STREAMLIT_SERVER_FILE_WATCHER_TYPE=poll
 ENV STREAMLIT_BROWSER_GATHER_USAGE_STATS=false
 ENV STREAMLIT_SERVER_ENABLE_STATIC_SERVING=true
 ENV STREAMLIT_CONFIG_DIR=/home/app/.streamlit
@@ -38,10 +37,9 @@ COPY .streamlit ./.streamlit/
 COPY .env ./
 
 # Copy application code
-COPY src/chatbot-ui ./src/chatbot-ui/
+COPY src/ ./src/
 
-# Pre-compile Python files to bytecode
-RUN python -m compileall ./src/chatbot-ui
+# Skip bytecode compilation for development
 
 # Set PATH to use the virtual environment
 ENV PATH="/app/.venv/bin:$PATH"
