@@ -41,6 +41,15 @@ clean-test-files:
 	rm -f src/chatbot-ui/test_env.py
 
 run-docker-compose:
+	@echo "Ensuring Colima is running..."
+	@colima status >/dev/null 2>&1 || (colima start && sleep 10)
+	@echo "Waiting for Docker daemon to be ready..."
+	@until docker ps >/dev/null 2>&1; do echo "Waiting for Docker..."; sleep 2; done
+	@echo "Stopping any existing containers on ports 8000 and 8501..."
+	@lsof -ti:8000 | xargs kill -9 2>/dev/null || true
+	@lsof -ti:8501 | xargs kill -9 2>/dev/null || true
+	@docker compose down 2>/dev/null || true
+	@echo "Starting Docker Compose services..."
 	docker compose up --build
 
 

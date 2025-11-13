@@ -1,21 +1,17 @@
-from pydantic import BaseModel
-from typing import List, Optional
+from pydantic import BaseModel, Field
+from typing import Optional, List
 
 
-class RAGRequest(BaseModel):
-    """Request model for RAG endpoint"""
-    question: str
-    top_k: int = 5
+class AgentRequest(BaseModel):
+    query: str = Field(..., description="The query to be used in the RAG pipeline")
 
 
-class RAGUsedImage(BaseModel):
-    """Model for retrieved images"""
-    image_url: str
-    price: Optional[float] = None
-    description: str
+class RAGUsedContext(BaseModel):
+    image_url: str = Field(..., description="The image URL of the item")
+    price: Optional[float] = Field(..., description="The price of the item")
+    description: str = Field(..., description="The description of the item")
 
-
-class RAGResponse(BaseModel):
-    """Response model for RAG endpoint"""
-    answer: str
-    retrieved_images: List[RAGUsedImage]
+class AgentResponse(BaseModel):
+    request_id: str = Field(..., description="The request ID")
+    answer: str = Field(..., description="The answer to the query")
+    used_context: List[RAGUsedContext] = Field(..., description="Information about items used to answer the query")

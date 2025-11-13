@@ -18,6 +18,7 @@ class Config(BaseSettings):
     QDRANT_API_KEY: Optional[str] = None
     QDRANT_COLLECTION_NAME: str = "electronics"
     API_URL: str = "http://api:8000"
+
     
 
 

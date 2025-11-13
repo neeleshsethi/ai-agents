@@ -1,125 +1,103 @@
 import streamlit as st
-import os
-import sys
-from pathlib import Path
 import requests
+import logging
 
-# Add the parent directory to the Python path to enable imports
-src_dir = Path(__file__).parent.parent
-sys.path.insert(0, str(src_dir))
-
-from openai import OpenAI
-from google import genai
-from google.genai import types
-
-from groq import Groq
 from core.config import config
 
-# Set environment variables to prevent permission errors
-os.environ['STREAMLIT_SERVER_HEADLESS'] = 'true'
-os.environ['STREAMLIT_SERVER_FILE_WATCHER_TYPE'] = 'none'
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-# FastAPI backend URL - configure this based on your setup
-FASTAPI_URL = os.getenv("FASTAPI_URL", "http://localhost:8000")
 
-def run_rag_pipeline(prompt):
-    """Call FastAPI RAG endpoint"""
+st.set_page_config(
+    page_title="Ecommerce Assistant",
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
+
+
+def api_call(method, url, **kwargs):
+
+    def _show_error_popup(message):
+        """Show error message as a popup in the top-right corner."""
+        st.session_state["error_popup"] = {
+            "visible": True,
+            "message": message,
+        }
+
     try:
-        response = requests.post(
-            f"{FASTAPI_URL}/rag/",
-            json={"question": prompt, "top_k": 5},
-            timeout=30
-        )
-        response.raise_for_status()
-        data = response.json()
-        return data
+        response = getattr(requests, method)(url, **kwargs)
+
+        try:
+            response_data = response.json()
+        except requests.exceptions.JSONDecodeError:
+            response_data = {"message": "Invalid response format from server"}
+
+        if response.ok:
+            return True, response_data
+
+        return False, response_data
+
     except requests.exceptions.ConnectionError:
-        return {"answer": "Error: Cannot connect to FastAPI backend. Make sure it's running.", "retrieved_images": []}
+        _show_error_popup("Connection error. Please check your network connection.")
+        return False, {"message": "Connection error"}
     except requests.exceptions.Timeout:
-        return {"answer": "Error: Request timed out. Please try again.", "retrieved_images": []}
+        _show_error_popup("The request timed out. Please try again later.")
+        return False, {"message": "Request timeout"}
     except Exception as e:
-        return {"answer": f"Error: {str(e)}", "retrieved_images": []}
+        _show_error_popup(f"An unexpected error occurred: {str(e)}")
+        return False, {"message": str(e)}
 
-# Initialize session state variables
-if 'messages' not in st.session_state:
-    st.session_state.messages = [{"role": "assistant", "content": "Hi! How can I assist you?"}]
 
-if 'retrieved_items' not in st.session_state:
-    st.session_state.retrieved_items = []
+if "messages" not in st.session_state:
+    st.session_state.messages = [{"role": "assistant", "content": "Hello! How can I assist you today?"}]
 
-# Page configuration
-st.set_page_config(page_title="Product Assistant", layout="wide")
-st.title("🛍️ Product Assistant Chatbot")
+if "used_context" not in st.session_state:
+    st.session_state.used_context = []
 
-# Sidebar for product suggestions
+
 with st.sidebar:
-    st.markdown("### 📦 Product Suggestions")
-    st.markdown("---")
+    # Create tabs in the sidebar
+    suggestions_tab, = st.tabs(["🔍 Suggestions"])
+    
+    # Suggestions Tab
+    with suggestions_tab:
+        if st.session_state.used_context:
+            for idx, item in enumerate(st.session_state.used_context):
+                st.caption(item.get('description', 'No description'))
+                if 'image_url' in item:
+                    st.image(item["image_url"], width=250)
+                st.caption(f"Price: {item['price']} USD")
+                st.divider()
+        else:
+            st.info("No suggestions yet")
 
-    if st.session_state.retrieved_items:
-        for idx, item in enumerate(st.session_state.retrieved_items):
-            # Create a card-like display for each product
-            with st.container():
-                st.markdown(f"#### Product {idx + 1}")
-
-                # Display product image
-                if 'image_url' in item and item['image_url']:
-                    st.image(item['image_url'], use_container_width=True)
-                else:
-                    st.info("🖼️ No image available")
-
-                # Display product description
-                description = item.get("description", "No description available")
-                st.markdown(f"**Description:**")
-                st.write(description)
-
-                # Display product price
-                price = item.get("price", "N/A")
-                st.markdown(f"**💰 Price:** `${price} USD`")
-
-                # Add a divider between products
-                if idx < len(st.session_state.retrieved_items) - 1:
-                    st.markdown("---")
-    else:
-        st.info("💡 Ask about products to see suggestions here!")
-
-# Display chat messages
 for message in st.session_state.messages:
-    with st.chat_message(message['role']):
-        st.markdown(message['content'])
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
 
-# Chat input
-if prompt := st.chat_input("Ask about products..."):
-    # Add user message to chat
+if prompt := st.chat_input("Hello! How can I assist you today?"):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    # Get assistant response
     with st.chat_message("assistant"):
-        with st.spinner("Thinking..."):
-            response = run_rag_pipeline(prompt)
+        status, output = api_call("post", f"{config.API_URL}/rag", json={"query": prompt})
 
-            # Get response content
-            response_content = response.get("answer", "Sorry, I couldn't process your request.")
-            st.markdown(response_content)
+        if not status:
+            # API call failed
+            error_message = output.get("message", "An error occurred")
+            st.error(f"Error: {error_message}")
+            answer = f"Sorry, I encountered an error: {error_message}"
+            st.session_state.messages.append({"role": "assistant", "content": answer})
+            st.stop()
 
-            # Add assistant message to chat history
-            st.session_state.messages.append({
-                'role': 'assistant',
-                "content": response_content
-            })
+        # API call succeeded
+        answer = output.get("answer", "No answer provided")
+        used_context = output.get("used_context", [])
 
-            # Extract retrieved items for sidebar and trigger rerun to update sidebar
-            st.session_state.retrieved_items = response.get("retrieved_images", [])
+        st.session_state.used_context = used_context
 
-    # Force rerun to update sidebar with new retrieved items
+        st.write(answer)
+
+    st.session_state.messages.append({"role": "assistant", "content": answer})
     st.rerun()
-
-# Optional: Add a button to clear chat history
-with st.sidebar:
-    st.markdown("---")
-    if st.button("🗑️ Clear Chat History"):
-        st.session_state.messages = [{"role": "assistant", "content": "Hi! How can I assist you?"}]
-        st.session_state.retrieved_items = []
-        st.rerun()

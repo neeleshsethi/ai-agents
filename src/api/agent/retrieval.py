@@ -11,6 +11,7 @@ from langsmith import traceable, get_current_run_tree
 from pydantic import BaseModel
 from api.core.config import config
 import instructor
+from api.rag.utils.utils import prompt_template_config, prompt_template_registry
 
 @traceable(
           name='embed_query',
@@ -97,26 +98,9 @@ def process_context(context):
 
 def build_prompt(context, question):
     processed_context = process_context(context)
-    prompt = f"""
-    You are shopping assistant that can answer questions about product in stock.
-    You will be given question and list of context
-    Instruction:
-    - You need to answer the question based on the context only.
-    - Never use the context and refer it to available products.
-    - As an output you need to provide:
-
-    * The answer to question based on provided context.
-    * The list of the indexes of the chunks that were used to answer the question. Only return the once that are used in the answer
-    * Short description of the item based on the context
-
-    - The answer to question should contain detailed information about the product and the returned with detailed specs in bullet points.
-    - The short description should have the name of the item.
-
-    Context:
-    {processed_context}
-    Question:
-    {question}
-    """
+    prompt_template = prompt_template_config(config.RAG_PROMPT_TEMPLATE_PATH, "rag_generation")
+    #prompt_template_ls = prompt_template_registry("rag-prompt")
+    prompt = prompt_template.render(processed_context=processed_context, question=question)
     return prompt
 
 class RAGUsedContext(BaseModel):

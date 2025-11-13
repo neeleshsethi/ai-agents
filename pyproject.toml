@@ -37,5 +37,6 @@ dependencies = [
     "langgraph-prebuilt",
     "langgraph-checkpoint-postgres",
     "psycopg[binary]",
-    "psycopg2-binary"
+    "psycopg2-binary",
+    "fastembed>=0.4.2"
 ]
