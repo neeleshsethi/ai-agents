@@ -10,7 +10,7 @@ run-all:
 	@make run-fastapi & make run-streamlit
 
 build-docker-streamlit:
-	docker build -t streamlit-app:latest .
+	docker build -f Dockerfile.streamlit -t streamlit-app:latest .
 
 run-docker-streamlit:
 	@echo "Checking if port 8501 is in use..."

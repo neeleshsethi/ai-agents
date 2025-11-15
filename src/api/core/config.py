@@ -15,6 +15,11 @@ class Config(BaseSettings):
     LANGSMITH_API_KEY: str
     LANGSMITH_PROJECT: str
     RAG_PROMPT_TEMPLATE_PATH: str = "src/api/rag/prompts/rag_generation.yaml"
+    SUPABASE_DB_URL: str
+    SUPABASE_PROJECT_REF: str
+    SUPABASE_PASSWORD: str
+    SUPABASE_REGION: str
+
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

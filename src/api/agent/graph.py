@@ -9,6 +9,11 @@ from langgraph.prebuilt import ToolNode
 from qdrant_client import QdrantClient
 from qdrant_client.models import Filter, FieldCondition, MatchValue
 import numpy as np
+from langgraph.checkpoint.postgres import PostgresSaver
+from api.core.config import config as app_config
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class State(BaseModel):
@@ -77,31 +82,53 @@ workflow.add_conditional_edges(
 
 workflow.add_edge("tool_node", "agent_node")
 
-graph = workflow.compile()
 
 
-def run_agent(question: str) -> str:
-    inital_state = {
-        'messages': [
-            {
-                'role': 'user',
-                'content': question
-            }
+def run_agent(question: str, thread_id: str) -> str:
+    logger.info(f"run_agent called with thread_id: {thread_id}")
+    logger.info(f"Question: {question}")
 
-        ],
-        'iteration': 0,
-        'available_tools': tool_descriptions
-    
-    }
-    result = graph.invoke(inital_state)
+    langgraph_config = {"configurable":{"thread_id": thread_id}}
+    logger.info(f"LangGraph config: {langgraph_config}")
+
+    with PostgresSaver.from_conn_string(app_config.SUPABASE_DB_URL) as checkpointer:
+        graph = workflow.compile(checkpointer=checkpointer)
+
+        # Check existing state
+        try:
+            current_state = graph.get_state(langgraph_config)
+            logger.info(f"Current checkpoint state exists: {bool(current_state.values)}")
+            if current_state.values:
+                logger.info(f"Existing state keys: {current_state.values.keys()}")
+                logger.info(f"Existing messages count: {len(current_state.values.get('messages', []))}")
+        except Exception as e:
+            logger.error(f"Error getting state: {e}")
+
+        initial_state = {
+            'messages': [
+                {
+                    'role': 'user',
+                    'content': question
+                }
+            ],
+            'iteration': 0,
+            'available_tools': tool_descriptions
+        }
+
+        logger.info(f"Invoking graph with initial_state containing {len(initial_state['messages'])} messages")
+        result = graph.invoke(initial_state, config=langgraph_config)
+        logger.info(f"Graph execution completed. Result keys: {result.keys()}")
+        logger.info(f"Result messages count: {len(result.get('messages', []))}")
+
     return result
 
-def run_agent_wrapper(question: str):
+
+def run_agent_wrapper(question: str, thread_id: str):
     qdrant_client = QdrantClient(
     url="https://511b707b-5120-4c5e-8f7f-cb3a72cb82f4.us-west-2-0.aws.cloud.qdrant.io:6333", 
     api_key="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3MiOiJtIn0.9BuL_6z6hC7gHfXmMOB2SvlWtM3t6wchSuocbm-6MHE",
 )
-    result = run_agent(question)
+    result = run_agent(question, thread_id)
     used_context = []
     dummy_vector = np.zeros(1536).tolist()
 

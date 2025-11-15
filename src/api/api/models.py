@@ -4,6 +4,7 @@ from typing import Optional, List
 
 class AgentRequest(BaseModel):
     query: str = Field(..., description="The query to be used in the RAG pipeline")
+    thread_id: str = Field(..., description="The thread ID for conversation continuity")
 
 
 class RAGUsedContext(BaseModel):

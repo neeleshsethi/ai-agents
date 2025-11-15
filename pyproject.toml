@@ -38,5 +38,5 @@ dependencies = [
     "langgraph-checkpoint-postgres",
     "psycopg[binary]",
     "psycopg2-binary",
-    "fastembed>=0.4.2"
+    "fastembed>=0.4.2",
 ]

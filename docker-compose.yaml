@@ -1,3 +1,11 @@
+networks:
+  default:
+    enable_ipv6: true
+    ipam:
+      config:
+        - subnet: fd00:c16a:601e::/80
+          gateway: fd00:c16a:601e::1
+
 services:
   streamlit-app:
     build:
@@ -37,6 +45,22 @@ services:
     volumes:
       - ./src/api:/app/src/api
 
+#  postgres:
+#    image: postgres:16-alpine
+#    ports:
+#      - 5432:5432
+#    environment:
+#      POSTGRES_DB: langgraph_db
+#      POSTGRES_USER: langgraph_user
+#      POSTGRES_PASSWORD: langgraph_password
+#      PGDATA: /var/lib/postgresql/data/pgdata
+#    restart: unless-stopped
+#    volumes:
+#      - ./postgres_data:/var/lib/postgresql/data
+
+
+
+      
   
 
 
